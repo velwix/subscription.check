@@ -1,4 +1,4 @@
-name = "subscription.check"
+name = "subscription-check"
 main = "index.js"
 compatibility_date = "2024-03-01"
 
