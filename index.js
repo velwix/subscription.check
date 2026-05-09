@@ -1,28 +1,36 @@
 export default {
   async fetch(request, env) {
-    if (request.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+
+    
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        }
       });
+    }
+
+    if (request.method !== "POST") {
+      return json({ error: "Method not allowed" }, 405);
     }
 
     const url = new URL(request.url);
     const providedApiKey = url.pathname.split('/')[1];
 
     if (providedApiKey !== env.API_KEY) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-      });
+      return json({ error: "Unauthorized" }, 403);
     }
 
     try {
       const { user_id, channels } = await request.json();
+
       const results = {};
 
       for (const channel of channels) {
         const tgUrl = `https://api.telegram.org/bot${env.BOT_TOKEN}/getChatMember?chat_id=${channel}&user_id=${user_id}`;
+
         const response = await fetch(tgUrl);
         const data = await response.json();
 
@@ -34,14 +42,20 @@ export default {
         }
       }
 
-      return new Response(JSON.stringify({ status: "success", results }), {
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-      });
+      return json({ status: "success", results });
+
     } catch (err) {
-      return new Response(JSON.stringify({ error: "Invalid request" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-      });
+      return json({ error: "Invalid request" }, 400);
     }
   }
 };
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*"
+    }
+  });
+}
